@@ -1,11 +1,13 @@
 // 3.8 Phonebook backend
 const express = require('express')
 const morgan = require('morgan')
+const cors = require('cors')
 const app = express()
 
 const loggerFormat = ':method :url :status :res[content-length] - :response-time ms :data'
 app.use(express.json())
 app.use(morgan(loggerFormat))
+app.use(cors())
 
 morgan.token('data', function(req, res) {
   if (req.method === "POST") return JSON.stringify(req.body)
@@ -92,6 +94,7 @@ app.delete('/api/persons/:id', (req, res) => {
     res.status(204).end()
 })
 
-const port = 3001
-app.listen(port)
-console.log(`Server running on port ${port}`)
+const PORT = process.env.PORT || 3001
+app.listen(PORT, () => {
+  console.log(`Server running on port ${port}`)
+})
