@@ -1,4 +1,4 @@
-// 3.8 Phonebook backend
+// 3.18* Phonebook backend with MongoDB
 require('dotenv').config()
 const express = require('express')
 const morgan = require('morgan')
@@ -48,12 +48,14 @@ app.get('/info', (req, res) => {
       res.write(`<p>${new Date().toString()}</p>`)
       res.end()
     })
+    .catch(error => next(error))
   })
 
 app.get('/api/persons', (req, res) => {
   Person.find({}).then(persons => {
     res.json(persons.map(person => person.toJSON()))
-  })  
+  })
+  .catch(error => next(error))  
   })
 
 app.get('/api/persons/:id', (req, res) => {
@@ -61,10 +63,10 @@ app.get('/api/persons/:id', (req, res) => {
     .then(person => {
       person ? res.json(person.toJSON()) : res.status(404).end()
     })
-    .catch(error => res.status(400).send({error: 'malformatted id'}))
+    .catch(error => next(error))
 })
 
-app.post('/api/persons', (req, res) => {
+app.post('/api/persons', (req, res, next) => {
 
   const body = req.body
 
@@ -84,23 +86,24 @@ app.post('/api/persons', (req, res) => {
     })
   }
 
-  if (persons.find(person => person.name === body.name)) {
-    return res.status(400).json({ 
-      error: 'name must be unique' 
-    })
-  }
+  // if (Person.find(person => person.name === body.name)) {
+  //   return res.status(400).json({ 
+  //     error: 'name must be unique' 
+  //   })
+  // }
 
   const person = new Person({
     name: body.name,
     number: body.number
   })
   person.save().then(savedPerson => res.json(savedPerson.toJSON()))
+  .catch(error => next(error))
 })
 
-app.delete('/api/persons/:id', (req, res) => {
-    const id = Number(req.params.id)
+app.delete('/api/persons/:id', (req, res, next) => {
     Person.findByIdAndRemove(req.params.id)
     .then (result => res.status(204).end())
+    .catch(error => next(error))
 })
 
 app.put('/api/persons/:id', (req, res, next) => {
@@ -119,3 +122,23 @@ app.put('/api/persons/:id', (req, res, next) => {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`)
 })
+
+// Error handlers
+
+const unknownEndpoint = (req, res) => {
+  res.status(404).send({error: 'unknown endpoint'})
+}
+
+app.use(unknownEndpoint)
+
+const errorHandler = (error, req, res, next) => {
+  console.error(error.message)
+
+  if (error.name === 'CastError' && error.kind === 'ObjectId') {
+    return res.status(400).send({error: 'malformatted id'})
+  }
+
+  next(error)
+}
+
+app.use(errorHandler)
