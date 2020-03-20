@@ -51,7 +51,7 @@ app.get('/info', (req, res) => {
     .catch(error => next(error))
   })
 
-app.get('/api/persons', (req, res) => {
+app.get('/api/persons', (req, res, next) => {
   Person.find({}).then(persons => {
     res.json(persons.map(person => person.toJSON()))
   })
@@ -136,6 +136,8 @@ const errorHandler = (error, req, res, next) => {
 
   if (error.name === 'CastError' && error.kind === 'ObjectId') {
     return res.status(400).send({error: 'malformatted id'})
+  } else if (error.name == 'ValidationError') {
+    return res.status(400).json({error: error.message})
   }
 
   next(error)
